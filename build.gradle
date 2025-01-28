@@ -1,0 +1,100 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.0'
+	id 'io.spring.dependency-management' version '1.1.6'
+	id 'jacoco'
+	id 'com.github.ben-manes.versions' version '0.47.0'
+}
+
+group = 'com.longleg'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+dependencies {
+//	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0' // 최신 버전으로 업데이트
+	implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
+	implementation 'com.vladsch.flexmark:flexmark-all:0.62.2'
+
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'com.h2database:h2'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.mockito:mockito-core:5.0.0'
+	testImplementation 'org.mockito:mockito-junit-jupiter:5.0.0'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.4.0'
+}
+
+jacoco {
+	toolVersion = "0.8.8" // JaCoCo 최신 버전
+}
+
+tasks.test {
+	useJUnitPlatform()
+	finalizedBy tasks.jacocoTestReport // 테스트가 끝난 후 리포트 생성
+}
+
+tasks.jacocoTestReport {
+	dependsOn tasks.test // 테스트 실행 후 리포트 생성
+	reports {
+		xml.required.set(true) // XML 리포트 활성화 (SonarQube 등에서 사용)
+		html.required.set(true) // HTML 리포트 활성화 (브라우저에서 확인 가능)
+		csv.required.set(false) // CSV 리포트 비활성화
+	}
+	classDirectories.setFrom(files(classDirectories.files.collect {
+		fileTree(dir: it, exclude: [
+				'**/MarkdownPreviewController.class',  // 특정 클래스 제외
+				'**/ServletInitializer.class',     // 추가로 제외할 클래스
+				'**/OurRoomApplication.class',
+				'**/GlobalExceptionHandler.class',
+				'**/CachingRequestBodyFilter.class',
+				'**/JacksonConfig.class',
+				'**/CustomException.class'
+		])
+	}))
+}
+
+tasks.jacocoTestCoverageVerification {
+	dependsOn tasks.test // 테스트 실행 후 커버리지 검증
+	violationRules {
+		rule {
+			limit {
+				minimum = 0.3 // 최소 커버리지 40% 설정
+			}
+			excludes = ['com.longleg.reward.entity.*',// 엔티티 제외
+						'com.longleg.reward.dto.*'] // 엔티티 제외
+		}
+	}
+
+}
+
+tasks.check {
+	dependsOn tasks.jacocoTestCoverageVerification
+}
+
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+tasks.withType(JavaExec) {
+	systemProperty "file.encoding", "UTF-8"
+}
