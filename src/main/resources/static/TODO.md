@@ -1,78 +1,108 @@
-# 📋 프로젝트 To-Do List
+# To-Do List: API 개발
 
-## 1. 엔티티 설계  (12.21 토)
-- [X] Users 엔티티 생성 (`feature/entity-setup`)
-    - 사용자 ID, 이름 필드 정의
-    - MeetingRoom과의 Many-to-One 관계 매핑
-- [X] MeetingRoom 엔티티 생성 (`feature/entity-setup`)
-    - 회의실 ID, 이름, 수용 인원 필드 정의
-    - Users와의 One-to-Many 관계 매핑
-- [X] Schedule 엔티티 생성 (`feature/entity-setup`)
-    - 일정 ID, 이름, 시작/종료 시간, 참여자 목록 필드 정의
-    - MeetingRoom과의 Many-to-One 관계 매핑
-    - Users와의 Many-to-Many 관계 매핑
+## 1. 데이터 수집 API
+### 1.1. 작품 조회수 및 좋아요 데이터 수집
+- [ ] **POST /works/{id}/view**
+  - 설명: 특정 작품에 대한 조회 데이터를 기록.
+  - 작업:
+    - 작품 ID 기반으로 조회수 증가.
+    - 데이터를 실시간으로 소비자에게 제공.
 
----
+- [ ] **POST /works/{id}/like**
+  - 설명: 특정 작품에 좋아요 추가.
+  - 작업:
+    - 작품 ID와 소비자 ID를 기반으로 좋아요 데이터 기록.
+    - 좋아요 상태를 활성화(`is_active = true`)로 설정.
 
-## 2. 사용자 관리 API (12.21 토)
-- [X] 사용자 생성 (`feature/user-api`)
-    - POST /users
-- [X] 사용자 조회 (`feature/user-api`)
-    - GET /users
-    - GET /users/{id}
+- [ ] **DELETE /works/{id}/like**
+  - 설명: 특정 작품의 좋아요 취소.
+  - 작업:
+    - 작품 ID와 소비자 ID를 기반으로 좋아요 상태 비활성화(`is_active = false`).
 
 ---
 
-## 3. 회의실 관리 API (12.21 토)
-- [X] 회의실 조회 (`feature/meetingroom-api`)
-    - GET /rooms
-    - GET /rooms/{id}
-- [X] 회의실 예약 가능 여부 확인 (`feature/meetingroom-api`)
-    - GET /rooms/{id}/availability
+## 2. 데이터 조회 API
+### 2.1. 작품 데이터 통계 조회
+- [ ] **GET /works/{id}/stats**
+  - 설명: 특정 작품의 일일, 주간, 월간, 연간 데이터 조회.
+  - 작업:
+    - 요청된 기간에 해당하는 조회수와 좋아요 데이터를 반환.
+
+### 2.2. 전체 작품 랭킹 조회
+- [ ] **GET /ranking**
+  - 설명: 모든 작품의 현재 랭킹 점수 조회.
+  - 작업:
+    - 랭킹 점수 계산: `(좋아요 수 × 2) + (조회수 × 1)`
+    - 계산된 순위를 반환.
+
+- [ ] **GET /ranking?date=YYYY-MM-DD**
+  - 설명: 특정 날짜 기준 작품 랭킹 조회.
+  - 작업:
+    - 요청된 날짜의 랭킹 점수를 기준으로 순위 데이터 반환.
 
 ---
 
-## 4. 일정 관리 API (12.22 일)
-- [X] 일정 생성 (`feature/schedule-api`)
-    - POST /schedules
-- [X] 일정 조회 (`feature/schedule-api`)
-    - GET /schedules
-    - GET /schedules/{id}
-- [X] 일정 수정 (`feature/schedule-api`)
-    - PUT /schedules/{id}
-- [X] 일정 삭제 (`feature/schedule-api`)
-    - DELETE /schedules/{id}
-- [X] 일정에 참여자 추가 (`feature/schedule-participants`)
-    - POST /schedules/{id}/participants
-- [X] 일정에서 참여자 삭제 (`feature/schedule-participants`)
-    - DELETE /schedules/{id}/participants/{userId}
+## 3. 리워드 지급 API
+### 3.1. 리워드 지급 요청
+- [ ] **POST /rewards/requests**
+  - 설명: 관리자가 리워드 지급 요청을 생성.
+  - 작업:
+    - 특정 날짜를 기준으로 리워드 지급 요청 생성.
+    - 요청 당일은 리워드 지급 기준 날짜로 설정 불가.
+
+### 3.2. 리워드 지급 내역 조회
+- [ ] **GET /rewards/history**
+  - 설명: 모든 리워드 지급 내역 조회.
+  - 작업:
+    - 지급된 모든 리워드 정보를 반환.
+
+- [ ] **GET /users/{id}/rewards**
+  - 설명: 특정 사용자의 리워드 지급 내역 조회.
+  - 작업:
+    - 사용자 ID 기반으로 지급 내역 반환.
+    - 지급 날짜, 지급 이유(랭킹 순위), 지급된 포인트 포함.
+
+### 3.3. 상위 10위 리워드 지급
+- [ ] **POST /rewards/execute**
+  - 설명: 상위 10위 작품의 작가와 소비자에게 리워드 지급.
+  - 작업:
+    - 상위 10위 작품의 작가에게 리워드 지급.
+      - 동일 작가에게는 리워드가 한 번만 지급.
+    - 상위 10위 작품에 기여한 소비자에게 리워드 지급.
+      - 각 소비자는 자신이 기여한 작품당 1개의 리워드만 받음.
 
 ---
 
+## 4. 관리 및 사용자 API
+### 4.1. 사용자 API
+- [ ] **GET /users/{id}**
+  - 설명: 특정 사용자의 프로필 정보 조회.
+  - 작업:
+    - 사용자 ID 기반으로 프로필 데이터 반환.
 
-## 6. 테스트 및 디버깅 (12.23 월)
-- [X] 엔티티와 초기 데이터 테스트 (`feature/test-database`)
-    - Jacoco과 H2 콘솔을 활용하여 데이터 무결성 확인
-- [X] API 통합 테스트 (`feature/test-api`)
-    - MockMvc로 API 호출 및 응답 테스트
-    - 상태 코드 및 응답 데이터 검증
-
----
-
-## 7. 문서화 (기능 개발 마다)
-- [X] API 명세 작성 (`feature/docs-api`)
-    - 각 API에 대한 요청/응답 정의
-- [X] 프로젝트 README 작성 (`docs/readme`)
-    - 프로젝트 개요 및 실행 방법
-    - 주요 기능 및 구조 설명
+### 4.2. 작가 API
+- [ ] **GET /authors/{id}/rewards**
+  - 설명: 특정 작가의 리워드 지급 내역 조회.
+  - 작업:
+    - 작가 ID 기반으로 지급 내역 반환.
 
 ---
 
-## 8. 최종 마무리 (12.24 화)
-- [X] 코드 리팩토링 (`chore/refactor-code`)
-    - 코드 정리 및 주석 추가
-    - 불필요한 코드 및 로그 제거
-- [X] 최종 배포 준비 (`main`)
-    - 배포 가능한 상태로 병합
+## 5. 추가 작업
+- [ ] **H2 데이터베이스 콘솔 활성화**
+  - URL: `/h2-console`
+  - 작업: `application.properties`에 H2 콘솔 활성화 설정 추가.
 
+---
 
+## 작업 우선순위
+1. **데이터 수집 API**:
+  - 조회수, 좋아요 기록 및 상태 관리.
+2. **데이터 조회 API**:
+  - 작품별 통계 및 랭킹 조회.
+3. **리워드 지급 API**:
+  - 리워드 지급 요청 및 실행.
+4. **관리 및 사용자 API**:
+  - 사용자와 작가의 리워드 내역 조회.
+
+---
