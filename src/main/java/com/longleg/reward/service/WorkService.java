@@ -83,7 +83,7 @@ public class WorkService {
     }
 
     @Transactional
-    public int recordUnlike(Long workId, Long userId) {
+    public void recordUnlike(Long workId, Long userId) {
         Work work = workRepository.findById(workId)
                 .orElseThrow(() -> new CustomException("Resource not found", "해당 작품을 찾을 수 없습니다."));
 
@@ -107,9 +107,7 @@ public class WorkService {
                     .build());
 
             work.decreaseLikeCount();  // ✅ 좋아요 수 감소
-
         }
-        return work.getLikeCount();
     }
 }
 

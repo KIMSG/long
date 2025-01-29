@@ -1,5 +1,6 @@
 package com.longleg.reward.controller;
 
+import com.longleg.reward.exception.CustomException;
 import com.longleg.reward.service.WorkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -8,8 +9,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/works")
@@ -82,8 +86,7 @@ public class WorkController {
                             examples = @ExampleObject(value = "{\"errorCode\": \"Resource not found\", \"errorMessage\": \"해당 작품을 좋아요하지 않아서 좋아요 취소를 할 수 없습니다.\"}")))
     })
     @DeleteMapping("/{id}/like")
-    public ResponseEntity<Integer> unlikeWork(@PathVariable Long id, @RequestParam Long userId) {
-        int likeCount = workService.recordUnlike(id, userId);
-        return ResponseEntity.ok(likeCount);
+    public void unlikeWork(@PathVariable Long id, @RequestParam Long userId) {
+        workService.recordUnlike(id, userId);
     }
 }

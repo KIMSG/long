@@ -6,7 +6,7 @@ plugins {
 	id 'com.github.ben-manes.versions' version '0.47.0'
 }
 
-group = 'com.longleg'
+group = 'com.long'
 version = '0.0.1-SNAPSHOT'
 
 java {
@@ -26,31 +26,35 @@ configurations {
 }
 
 dependencies {
-//	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0' // 최신 버전으로 업데이트
-	implementation 'org.springdoc:springdoc-openapi-ui:1.7.0'
 	implementation 'com.vladsch.flexmark:flexmark-all:0.62.2'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	// ✅ JUnit 5 명확하게 지정
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher' // ✅ Gradle 9.0 대비
+
+
 	testImplementation 'org.mockito:mockito-core:5.0.0'
-	testImplementation 'org.mockito:mockito-junit-jupiter:5.0.0'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.4.0'
+	testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test' exclude module: 'junit-vintage-engine' // ✅ JUnit 4 제외
 }
 
 jacoco {
 	toolVersion = "0.8.8" // JaCoCo 최신 버전
 }
 
-tasks.test {
-	useJUnitPlatform()
-	finalizedBy tasks.jacocoTestReport // 테스트가 끝난 후 리포트 생성
+tasks.withType(Test).configureEach {
+	useJUnitPlatform() // ✅ JUnit 5 사용
+	finalizedBy jacocoTestReport // ✅ 테스트 후 Jacoco 리포트 실행
 }
 
 tasks.jacocoTestReport {
@@ -68,7 +72,8 @@ tasks.jacocoTestReport {
 				'**/GlobalExceptionHandler.class',
 				'**/CachingRequestBodyFilter.class',
 				'**/JacksonConfig.class',
-				'**/CustomException.class'
+				'**/CustomException.class',
+				'**/RequestLoggingFilter.class'
 		])
 	}))
 }
@@ -78,7 +83,7 @@ tasks.jacocoTestCoverageVerification {
 	violationRules {
 		rule {
 			limit {
-				minimum = 0.3 // 최소 커버리지 40% 설정
+				minimum = 0.3 // 최소 커버리지 30% 설정
 			}
 			excludes = ['com.longleg.reward.entity.*',// 엔티티 제외
 						'com.longleg.reward.dto.*'] // 엔티티 제외

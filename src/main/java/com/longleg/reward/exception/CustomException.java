@@ -25,4 +25,5 @@ public class CustomException extends RuntimeException {
     public String getError() {
         return error;
     }
+
 }
