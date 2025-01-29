@@ -1,10 +1,4 @@
 -- H2 Database 초기 데이터 스크립트
--- 테이블 삭제
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS works;
-DROP TABLE IF EXISTS user_activities;
-DROP TABLE IF EXISTS reward_requests;
-DROP TABLE IF EXISTS reward_history;
 
 -- 1. 사용자 테이블 생성 (작가 및 소비자 포함)
 CREATE TABLE users (
