@@ -1,6 +1,6 @@
 package com.longleg.reward.entity;
 
-public enum Role {
+public enum UserRole {
     AUTHOR, USER, BOTH
 }
 
