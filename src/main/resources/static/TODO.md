@@ -37,6 +37,21 @@
 
 ---
 
+### **📌 1.4. 작품 데이터 통계 조회**
+- **[ ] `GET /works/{id}/stats`**
+  - **설명**: 특정 작품의 조회수, 좋아요 수, 댓글 수 등의 통계를 **사용자가 직접 지정한 기간(startDate~endDate) 
+  또는 미리 정의된 기간(period: daily, weekly, monthly, yearly) 기준으로 실시간 조회하는 API**
+  - **작업 목록**:
+    - `startDate`, `endDate` 요청 파라미터를 추가하여 사용자가 원하는 기간 동안의 데이터를 조회할 수 있도록 변경
+    - `period` 요청 파라미터 추가 (daily, weekly, monthly, yearly) → 입력값이 없으면 기본값 `daily`
+    - `period`가 있으면 해당 기간을 자동으로 계산하여 `startDate`, `endDate` 값을 설정
+    - `user_activity` 테이블에서 `activity_type`(VIEW, LIKE, COMMENT) 별로 `created_at` 기준으로 집계하여 데이터 반환
+    - JPQL을 수정하여 `BETWEEN :startDate AND :endDate` 조건을 적용
+    - 조회수(`views`), 좋아요(`likes`), 댓글 수(`comments`) 데이터를 포함하도록 응답 데이터 구조 정의
+    - API 응답 최적화 (Map으로 변환하여 `activity_type` 별 개수 반환)
+
+---
+
 ## **🔥 최종 정리**
 | API | 동작 방식 | 예외 처리 |
 |------|----------|----------|
