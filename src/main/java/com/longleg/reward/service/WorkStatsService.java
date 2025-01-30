@@ -16,49 +16,37 @@ public class WorkStatsService {
 
     private final UserActivityRepository userActivityRepository;
 
-    public Map<String, Integer> getWorkStatsPeriod(Long workId, String period) {
-        LocalDateTime endDate = LocalDateTime.now();
-        LocalDateTime startDate;
+    /**
+     * 기간(period) 또는 직접 지정한 날짜(startDate, endDate)를 기준으로 통계 조회
+     */
+    public Map<String, Integer> getWorkStats(Long workId, String period, LocalDate startDate, LocalDate endDate) {
 
-        switch (period) {
-            case "weekly":
-                startDate = endDate.minusWeeks(1);
-                break;
-            case "monthly":
-                startDate = endDate.minusMonths(1);
-                break;
-            case "yearly":
-                startDate = endDate.minusYears(1);
-                break;
-            default:
-                startDate = endDate.toLocalDate().atStartOfDay(); // 하루 기준
+        // 기본값 설정
+        if (period == null) {
+            period = "daily";
         }
+        LocalDateTime[] dateRange = calculateDateRange(period, startDate, endDate);
+        List<Object[]> stats = userActivityRepository.getWorkStats(workId, dateRange[0], dateRange[1]);
 
-        List<Object[]> stats = userActivityRepository.getWorkStats(workId, startDate, endDate);
+        // 결과가 없을 경우 빈 Map 반환
+        if (stats == null || stats.isEmpty()) {
+            return Map.of("좋아요", 0, "조회수", 0);
+        }
         Map<String, Integer> result = new HashMap<>();
-
         for (Object[] stat : stats) {
             result.put((String) stat[0], ((Number) stat[1]).intValue());
         }
 
-        return result;
+        return formatStats(result);
+
     }
 
-    public Map<String, Integer> getWorkStats(Long workId, String period, LocalDate startDate, LocalDate endDate) {
-//        LocalDateTime startDateTime = startDate.atStartOfDay(); // 시작 날짜 00:00:00
-//        LocalDateTime endDateTime = endDate.atTime(23, 59, 59); // 종료 날짜 23:59:59
-//
-//        List<Object[]> stats = userActivityRepository.getWorkStats(workId, startDateTime, endDateTime);
-//        Map<String, Integer> result = new HashMap<>();
-//
-//        for (Object[] stat : stats) {
-//            result.put((String) stat[0], ((Number) stat[1]).intValue());
-//        }
-//
-//        return result;
-
-        LocalDateTime startDateTime;
+    /**
+     * 기간(period) 또는 사용자 입력(startDate, endDate)에 따라 날짜 범위 계산
+     */
+    private LocalDateTime[] calculateDateRange(String period, LocalDate startDate, LocalDate endDate) {
         LocalDateTime endDateTime = LocalDateTime.now();
+        LocalDateTime startDateTime;
 
         if (startDate != null && endDate != null) {
             startDateTime = startDate.atStartOfDay();
@@ -78,13 +66,19 @@ public class WorkStatsService {
                     startDateTime = endDateTime.toLocalDate().atStartOfDay(); // daily 기본값
             }
         }
+        return new LocalDateTime[]{startDateTime, endDateTime};
+    }
 
-        List<Object[]> stats = userActivityRepository.getWorkStats(workId, startDateTime, endDateTime);
+    /**
+     * LIKE - UNLIKE 값 계산 후 가독성 좋은 Map 반환
+     */
+    public static Map<String, Integer> formatStats(Map<String, Integer> stats) {
+        int likes = stats.getOrDefault("LIKE", 0) - stats.getOrDefault("UNLIKE", 0);
+        int views = stats.getOrDefault("VIEW", 0);
+
         Map<String, Integer> result = new HashMap<>();
-
-        for (Object[] stat : stats) {
-            result.put((String) stat[0], ((Number) stat[1]).intValue());
-        }
+        result.put("좋아요", likes);
+        result.put("조회수", views);
 
         return result;
     }
