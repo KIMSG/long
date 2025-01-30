@@ -1,6 +1,8 @@
 package com.longleg.reward.service;
 
+import com.longleg.reward.exception.CustomException;
 import com.longleg.reward.repository.UserActivityRepository;
+import com.longleg.reward.repository.WorkRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -9,18 +11,28 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
 public class WorkStatsService {
 
     private final UserActivityRepository userActivityRepository;
+    private final WorkRepository workRepository;  // 작품 존재 여부 확인을 위한 리포지토리
 
     /**
      * 기간(period) 또는 직접 지정한 날짜(startDate, endDate)를 기준으로 통계 조회
      */
     public Map<String, Integer> getWorkStats(Long workId, String period, LocalDate startDate, LocalDate endDate) {
+        // ✅ 1. 조회하려는 작품이 존재하는지 확인 (없으면 CustomException 발생)
+        if (!workRepository.existsById(workId)) {
+            throw new CustomException("Resource not found", "해당 ID(" + workId + ")의 작품을 찾을 수 없습니다.");
+        }
 
+        // ✅ 2. 시작일이 종료일보다 클 경우 CustomException 발생
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new CustomException("Invalid to date", "시작일(" + startDate + ")은 종료일(" + endDate + ")보다 클 수 없습니다.");
+        }
         // 기본값 설정
         if (period == null) {
             period = "daily";

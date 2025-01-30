@@ -49,6 +49,8 @@
     - JPQL을 수정하여 `BETWEEN :startDate AND :endDate` 조건을 적용
     - 조회수(`views`), 좋아요(`likes`), 댓글 수(`comments`) 데이터를 포함하도록 응답 데이터 구조 정의
     - API 응답 최적화 (Map으로 변환하여 `activity_type` 별 개수 반환)
+    - **조회하려는 작품이 존재하는지 확인** (`workId`가 존재하지 않으면 `NoSuchElementException` 발생)
+    - **시작일이 종료일보다 클 경우 예외 발생** (`IllegalArgumentException`)
 
 ---
 
