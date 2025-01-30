@@ -85,12 +85,16 @@ public class WorkStatsService {
      * LIKE - UNLIKE 값 계산 후 가독성 좋은 Map 반환
      */
     public static Map<String, Integer> formatStats(Map<String, Integer> stats) {
+        System.out.println("📌 formatStats() 입력 데이터: " + stats);
+
         int likes = stats.getOrDefault("LIKE", 0) - stats.getOrDefault("UNLIKE", 0);
         int views = stats.getOrDefault("VIEW", 0);
 
         Map<String, Integer> result = new HashMap<>();
         result.put("좋아요", likes);
         result.put("조회수", views);
+        System.out.println("✅ formatStats() 변환된 데이터: " + result);
+
 
         return result;
     }
