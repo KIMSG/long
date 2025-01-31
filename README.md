@@ -61,29 +61,27 @@
 - 도커 배포 고려
 - MySQL/PostgreSQL 도입 예정
 
+---
 
-
-## 목표
+## 개발 목표
 - 랭킹 계산 및 리워드 지급을 효율적으로 처리할 수 있는 안정적이고 확장 가능한 시스템 설계.
 - Docker 이미지를 통해 애플리케이션을 손쉽게 배포 및 실행 가능하도록 구현.
 - API 중심 설계로 확장성과 유지보수성을 고려한 코드 작성.
 
----
 
-## 1. 사용자 정의 예외 처리
+### 1. 사용자 정의 예외 처리
 - `CustomException`을 사용하여 예외를 정의하고, 명확한 에러 메시지와 코드로 처리했습니다.
 - `GlobalExceptionHandler`를 통해 일관된 예외 응답을 제공하도록 설계했습니다.
 
----
 
-## 2. RESTful API 설계
+### 2. RESTful API 설계
 - HTTP 메서드에 따라 작업이 명확히 구분되었습니다.
     - **GET**: 데이터 조회.
     - **POST**: 데이터 생성.
     - **PUT**: 데이터 수정.
     - **DELETE**: 데이터 삭제.
 
-## 3. 가독성을 고려한 변수 및 메서드 네이밍
+### 3. 가독성을 고려한 변수 및 메서드 네이밍
 - 클래스, 메서드, 변수 이름을 직관적으로 명명하여 코드의 의도를 명확히 했습니다.
     - 예: `validateMeetingRoom`, `validateParticipants`, `validateTimeConflict`.
 
@@ -122,7 +120,6 @@ src
 - [ ] Docker 컨테이너 실행 확인:
     - `docker ps`를 사용하여 컨테이너 상태 확인.
 - [ ] `./gradlew bootRun`으로 애플리케이션 실행 후 API 테스트.
-- [ ] `http://localhost:8080/swagger-ui.html`에서 API 문서 확인.
 - [ ] REST API 동작 확인:
     - `http://localhost:8080`에 접속하여 기본 API 테스트.
     - GET, POST 요청을 Postman 또는 cURL로 테스트.
@@ -189,7 +186,7 @@ src
 
 ---
 
-## 테스트 및 코드
+## 테스트 및 API문서
 
 ### 단위 테스트:
 - src/test/java에서 테스트 코드 작성 및 실행.
@@ -199,23 +196,13 @@ src
 ```
 ./gradlew clean test jacocoTestReport
 ```
-
-- HTML 리포트 위치:
+- 테스트코드 HTML 리포트 위치:
 ```
 build/reports/jacoco/test/html/index.html
 ```
-
 - 브라우저에서 index.html 파일을 열어 코드 커버리지 리포트를 확인합니다.
 
-### 프로젝트 실행
-   ```bash
-   # 프로젝트 복제 및 실행
-   git clone https://github.com/your-repo/our-room.git
-   cd our-room
-   ./gradlew bootRun
-   ```
-
-### Swagger 및 H2 Console 접속
+### API문서 열람 Swagger 및 H2 Console 접속
 - Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - H2 Console: [http://localhost:8080/h2-console](http://localhost:8080/h2-console)
 
