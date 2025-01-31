@@ -145,10 +145,26 @@ public class RewardService {
             rewardHistoryRepository.save(history);
         }
 
-
-
+        distributeRewards(request.getId());
 
         return createResponse("Reward request completed.", rewardDate, "COMPLETE" ,topWorks);
+    }
+
+    @Transactional
+    public void distributeRewards(Long rewardRequestId) {
+        // 1. 특정 rewardRequestId에 해당하는 미지급 보상 조회
+        List<Object[]> unpaidRewards = rewardHistoryRepository.findUnpaidRewardsByRequest(rewardRequestId);
+
+        for (Object[] record : unpaidRewards) {
+            Long userId = ((Number) record[0]).longValue();
+            int totalPoints = ((Number) record[1]).intValue();
+
+            // 2. 사용자의 reward 값 업데이트
+            userRepository.updateUserReward(userId, totalPoints);
+
+            // 3. 해당 유저의 reward_history 기록을 paid 처리
+            rewardHistoryRepository.markAsPaid(userId, rewardRequestId);
+        }
     }
 
     /**
