@@ -59,7 +59,7 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, Long
                     SELECT user_id
                     FROM user_activity
                     WHERE work_id = :workId
-                      AND AND CAST(created_at AS DATE) = :rewardDate
+                      AND CAST(created_at AS DATE) = :rewardDate
                     AND activity_type = 'UNLIKE'
                     GROUP BY user_id
                     HAVING COUNT(*) >= (

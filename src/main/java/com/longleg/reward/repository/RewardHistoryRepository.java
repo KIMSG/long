@@ -31,5 +31,14 @@ public interface RewardHistoryRepository extends JpaRepository<RewardHistory, Lo
         """, nativeQuery = true)
     List<Object[]> findUnpaidRewardsByRequest(@Param("rewardRequestId") Long rewardRequestId);
 
+    @Query(value = "SELECT * FROM reward_history WHERE receiver_id = :userId"
+            , nativeQuery = true)
+    List<RewardHistory> findByReceiverId(@Param("userId") Long userId);
+
+    @Query("SELECT rh, rr.requestDate FROM RewardHistory rh " +
+            "JOIN rh.rewardRequest rr " +
+            "WHERE rh.receiver.id = :userId")
+    List<Object[]> findByReceiverIdWithRequestDate(@Param("userId") Long userId);
+
 }
 

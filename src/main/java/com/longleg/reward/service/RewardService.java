@@ -31,16 +31,7 @@ public class RewardService {
         if (!rewardDate.isBefore(today)) {
             throw new CustomException("Reward can't be requested", "요청 당일과 미래 날짜는 선택할 수 없습니다.");
         }
-
-        // 작품별 활동 데이터 조회 후 DTO 변환
-        List<WorkActivityDTO> rankedWorks = userActivityRepository.getWorkActivityCounts(rewardDate)
-                .stream()
-                .map(row -> new WorkActivityDTO(row.getWorkId(), row.getLikeCount(), row.getViewCount()))
-                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // 점수 기준 내림차순 정렬
-                .toList();
-
-        // 상위 10개만 선택
-        List<WorkActivityDTO> topWorks = rankedWorks.stream().limit(10).toList();
+        List<WorkActivityDTO> topWorks = reasonReward(rewardDate);
 
         // 응답 데이터 생성
         return createResponse("Reward request completed.", rewardDate, "COMPLETE" ,topWorks);
@@ -54,17 +45,7 @@ public class RewardService {
 
         validateRewardRequest(rewardDate);
 
-        // 작품별 활동 데이터 조회 후 DTO 변환
-//        List<WorkActivityDTO> rankedWorks = userActivityRepository.getWorkActivityCounts(rewardDate)
-        List<WorkActivityDTO> rankedWorks = Optional.ofNullable(userActivityRepository.getWorkActivityCounts(rewardDate))
-                .orElseThrow(() -> new CustomException("Resource not found","활동 데이터 조회 결과가 null입니다.")) // ✅ null 체크
-                .stream()
-                .map(row -> new WorkActivityDTO(row.getWorkId(), row.getLikeCount(), row.getViewCount()))
-                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // 점수 기준 내림차순 정렬
-                .toList();
-
-        // 상위 10개만 선택
-        List<WorkActivityDTO> topWorks = rankedWorks.stream().limit(10).toList();
+        List<WorkActivityDTO> topWorks = reasonReward(rewardDate);
 
         // 리워드 지급 요청 저장
         RewardRequest request = new RewardRequest(rewardDate);
@@ -221,6 +202,24 @@ public class RewardService {
             // 3. 해당 유저의 reward_history 기록을 paid 처리
             rewardHistoryRepository.markAsPaid(userId, rewardRequestId);
         }
+    }
+
+    /**
+     * 특정 날짜의 상위 10개 작품을 정렬하여 저장
+     */
+    public List<WorkActivityDTO> reasonReward(LocalDate rewardDate) {
+        // 작품별 활동 데이터 조회 후 DTO 변환
+        List<WorkActivityDTO> rankedWorks = Optional.ofNullable(userActivityRepository.getWorkActivityCounts(rewardDate))
+                .orElseThrow(() -> new CustomException("Resource not found","활동 데이터 조회 결과가 null입니다.")) // ✅ null 체크
+                .stream()
+                .map(row -> new WorkActivityDTO(row.getWorkId(), row.getLikeCount(), row.getViewCount(), row.getUserId()))
+                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // 점수 기준 내림차순 정렬
+                .toList();
+
+        // 상위 10개만 선택
+        List<WorkActivityDTO> topWorks = rankedWorks.stream().limit(10).toList();
+
+        return topWorks;
     }
 
     /**

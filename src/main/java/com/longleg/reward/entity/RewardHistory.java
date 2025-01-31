@@ -38,6 +38,8 @@ public class RewardHistory {
 
     private boolean totalPaid = false; // 지급 여부 (기록만 남김 → 실제 지급 시 TRUE)
 
+    private String rewardReason;
+
     public RewardHistory(RewardRequest rewardRequest, User receiver, Work work, int points) {
         this.rewardRequest = rewardRequest;
         this.receiver = receiver;
@@ -53,8 +55,4 @@ public class RewardHistory {
         this.points = points;
     }
 
-    // 지급 완료 처리
-    public void markAsPaid() {
-        this.totalPaid = true;
-    }
 }
