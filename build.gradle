@@ -67,13 +67,13 @@ tasks.jacocoTestReport {
 	classDirectories.setFrom(files(classDirectories.files.collect {
 		fileTree(dir: it, exclude: [
 				'**/MarkdownPreviewController.class',  // 특정 클래스 제외
-				'**/ServletInitializer.class',     // 추가로 제외할 클래스
-				'**/OurRoomApplication.class',
 				'**/GlobalExceptionHandler.class',
 				'**/CachingRequestBodyFilter.class',
 				'**/JacksonConfig.class',
 				'**/CustomException.class',
-				'**/RequestLoggingFilter.class'
+				'**/RequestLoggingFilter.class',
+				'**/LonglegApplication.class'
+
 		])
 	}))
 }
@@ -85,8 +85,8 @@ tasks.jacocoTestCoverageVerification {
 			limit {
 				minimum = 0.3 // 최소 커버리지 30% 설정
 			}
-			excludes = ['com.longleg.reward.entity.*',// 엔티티 제외
-						'com.longleg.reward.dto.*'] // 엔티티 제외
+			excludes = ['com.longleg.entity.*',// 엔티티 제외
+						'com.longleg.dto.*'] // 엔티티 제외
 		}
 	}
 
