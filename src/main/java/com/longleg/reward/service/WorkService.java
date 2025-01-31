@@ -26,12 +26,11 @@ public class WorkService {
     @Transactional
     public int recordView(Long workId, Long userId) {
         Work work = workRepository.findById(workId)
-                .orElseThrow(() -> new EntityNotFoundException("해당 작품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException("Resource not found","해당 작품을 찾을 수 없습니다."));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("해당 사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException("Resource not found","해당 사용자를 찾을 수 없습니다."));
 
-        //우선은 방어코드를 넣어보았다.
         //조회하는 사람이 일반 유저일 때만~ 조회수 올리기
         if (user.getUserRole().toString().equals("USER")) {
 
@@ -61,7 +60,6 @@ public class WorkService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException("Resource not found","해당 사용자를 찾을 수 없습니다."));
 
-        //우선은 방어코드를 넣어보았다.
         //조회하는 사람이 일반 유저일 때만~ 조회수 올리기
         if (user.getUserRole().toString().equals("USER")) {
 

@@ -5,8 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -40,15 +40,17 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, Long
                   - COALESCE(SUM(CASE WHEN ua.activity_type = 'UNLIKE' THEN 1 ELSE 0 END), 0) AS likeCount,
                   COALESCE(SUM(CASE WHEN ua.activity_type = 'VIEW' THEN 1 ELSE 0 END), 0) AS viewCount
                FROM user_activity ua 
+               WHERE CAST(ua.created_at AS DATE) = :rewardDate
                GROUP BY ua.work_id
                """, nativeQuery = true)
-    List<WorkActivityProjection> getWorkActivityCounts();
+    List<WorkActivityProjection> getWorkActivityCounts(LocalDate rewardDate);
 
 
     @Query(value = """
         SELECT DISTINCT user_id
         FROM user_activity
         WHERE work_id = :workId
+          AND CAST(created_at AS DATE) = :rewardDate
         AND (
             activity_type = 'VIEW'
             OR (
@@ -57,12 +59,14 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, Long
                     SELECT user_id
                     FROM user_activity
                     WHERE work_id = :workId
+                      AND AND CAST(created_at AS DATE) = :rewardDate
                     AND activity_type = 'UNLIKE'
                     GROUP BY user_id
                     HAVING COUNT(*) >= (
                         SELECT COUNT(*)\s
                         FROM user_activity ua2
                         WHERE ua2.work_id = :workId
+                          AND CAST(ua2.created_at AS DATE) = :rewardDate
                         AND ua2.activity_type = 'LIKE'
                         AND ua2.user_id = user_activity.user_id
                     )
@@ -70,6 +74,6 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, Long
             )
         )
         """, nativeQuery = true)
-    List<Long> findQualifiedUserIds(@Param("workId") Long workId);
+    List<Long> findQualifiedUserIds(@Param("workId") Long workId, @Param("rewardDate") LocalDate rewardDate);
 
 }

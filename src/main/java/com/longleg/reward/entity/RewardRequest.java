@@ -28,12 +28,23 @@ public class RewardRequest {
 
     public RewardRequest(LocalDate requestDate) {
         this.requestDate = requestDate;
-        this.status = RewardStatus.PENDING;
+        this.status = RewardStatus.REQUESTED;
         this.createdAt = LocalDateTime.now();
     }
 
+    /** ✅ 리워드 지급을 시작할 때 호출 */
+    public void startProcessing() {
+        this.status = RewardStatus.PROGRESS;
+    }
+
+    /** ✅ 리워드 지급이 성공적으로 완료되었을 때 호출 */
     public void complete() {
         this.status = RewardStatus.COMPLETED;
+    }
+
+    /** ✅ 리워드 지급이 실패했을 때 호출 */
+    public void fail() {
+        this.status = RewardStatus.FAILED;
     }
 }
 

@@ -24,9 +24,10 @@ public class WorkStatsController {
     @GetMapping("/{id}/stats")
     @Operation(
             summary = "작품 통계 조회",
-            description = "특정 작품의 조회수, 좋아요 수 등의 통계를 조회할 수 있습니다. "
-                    + "`startDate`와 `endDate`를 지정하거나, `period`를 사용하여 미리 정의된 기간(daily, weekly, monthly, yearly)을 선택할 수 있습니다."
-    )
+            description = """
+                        특정 작품의 조회수, 좋아요 수 등의 통계를 조회할 수 있습니다.
+                    `startDate`와 `endDate`를 지정하거나, `period`를 사용하여 미리 정의된 기간(daily, weekly, monthly, yearly)을 선택할 수 있습니다.
+            """)
     @ApiResponse(responseCode = "200", description = "성공적으로 작품 통계를 반환합니다.")
     @ApiResponse(responseCode = "400", description = "잘못된 날짜 입력 (예: 시작일이 종료일보다 클 경우)")
     @ApiResponse(responseCode = "404", description = "작품을 찾을 수 없음")

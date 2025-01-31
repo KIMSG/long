@@ -4,6 +4,7 @@ import com.longleg.reward.repository.UserActivityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -16,7 +17,7 @@ public class UserActivityService {
         this.userActivityRepository = userActivityRepository;
     }
 
-    public List<Long> getQualifiedUsers(Long workId) {
-        return userActivityRepository.findQualifiedUserIds(workId);
+    public List<Long> getQualifiedUsers(Long workId, LocalDate rewardDate) {
+        return userActivityRepository.findQualifiedUserIds(workId, rewardDate);
     }
 }

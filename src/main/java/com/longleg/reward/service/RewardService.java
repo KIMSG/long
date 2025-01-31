@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,76 +22,100 @@ public class RewardService {
     private final UserRepository userRepository;
 
     /**
-     * 리워드 지급 요청을 처리하는 메서드
-     */
-    @Transactional
-    public Map<String, Object> processReward(LocalDate rewardDate) {
-        validateRewardRequest(rewardDate);
-
-        // ✅ 리워드 지급 요청 저장
-        RewardRequest request = new RewardRequest(rewardDate);
-        rewardRequestRepository.save(request);
-        request.complete();
-        rewardRequestRepository.save(request);
-
-        // ✅ 응답 데이터 생성
-        return createResponse("리워드 지급 요청이 완료되었습니다.", rewardDate, request.getStatus().toString(), null);
-    }
-
-    /**
      * 특정 날짜의 상위 10개 작품을 기반으로 리워드를 계산하는 메서드
      */
     @Transactional
     public Map<String, Object> calReward(LocalDate rewardDate) {
+        LocalDate today = LocalDate.now();
 
-        // ✅ 작품별 활동 데이터 조회 후 DTO 변환
-        List<WorkActivityDTO> rankedWorks = userActivityRepository.getWorkActivityCounts()
+        if (!rewardDate.isBefore(today)) {
+            throw new CustomException("Reward can't be requested", "요청 당일과 미래 날짜는 선택할 수 없습니다.");
+        }
+
+        // 작품별 활동 데이터 조회 후 DTO 변환
+        List<WorkActivityDTO> rankedWorks = userActivityRepository.getWorkActivityCounts(rewardDate)
                 .stream()
                 .map(row -> new WorkActivityDTO(row.getWorkId(), row.getLikeCount(), row.getViewCount()))
-                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // ✅ 점수 기준 내림차순 정렬
+                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // 점수 기준 내림차순 정렬
                 .toList();
 
-        // ✅ 상위 10개만 선택
+        // 상위 10개만 선택
         List<WorkActivityDTO> topWorks = rankedWorks.stream().limit(10).toList();
 
-        // ✅ 응답 데이터 생성
+        // 응답 데이터 생성
         return createResponse("Reward request completed.", rewardDate, "COMPLETE" ,topWorks);
     }
 
+    /**
+     * 리워드 지급 요청을 처리하는 메서드
+     */
     @Transactional
     public Map<String, Object> rewardExecute(LocalDate rewardDate) {
-        // ✅ 작품별 활동 데이터 조회 후 DTO 변환
-        List<WorkActivityDTO> rankedWorks = userActivityRepository.getWorkActivityCounts()
+
+        validateRewardRequest(rewardDate);
+
+        // 작품별 활동 데이터 조회 후 DTO 변환
+//        List<WorkActivityDTO> rankedWorks = userActivityRepository.getWorkActivityCounts(rewardDate)
+        List<WorkActivityDTO> rankedWorks = Optional.ofNullable(userActivityRepository.getWorkActivityCounts(rewardDate))
+                .orElseThrow(() -> new CustomException("Resource not found","활동 데이터 조회 결과가 null입니다.")) // ✅ null 체크
                 .stream()
                 .map(row -> new WorkActivityDTO(row.getWorkId(), row.getLikeCount(), row.getViewCount()))
-                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // ✅ 점수 기준 내림차순 정렬
+                .sorted(Comparator.comparingInt(WorkActivityDTO::getScore).reversed()) // 점수 기준 내림차순 정렬
                 .toList();
 
-        // ✅ 상위 10개만 선택
+        // 상위 10개만 선택
         List<WorkActivityDTO> topWorks = rankedWorks.stream().limit(10).toList();
 
-        // ✅ 리워드 지급 요청 저장
+        // 리워드 지급 요청 저장
         RewardRequest request = new RewardRequest(rewardDate);
         rewardRequestRepository.save(request);
+        
+        //리워드 지급 진행중
+        request.startProcessing();
+        rewardRequestRepository.save(request);
+
+        allocateAuthorRewards(request, topWorks);
+
+        // 유저 ID별 점수를 저장할 Map (userId -> score)
+        List<Map<String, Object>> userScoreList = distributeAuthorRankingRewards(topWorks, rewardDate);
+
+        distributeConsumerRankingRewards(request, userScoreList);
+
+        distributeRewards(request.getId());
+
+        //랭킹 지급 계산 후 지급 요청건에 대한 상태값 변경
         request.complete();
         rewardRequestRepository.save(request);
 
-        /*작가에게는 리워드가 한번만 지급되어야 한다
-        * A작가 작품이 1등 / 10등 이면 1등의 리워드 100, 10등의 리워드 10  이렇게 해서 합하여 110을 지급하기로함.
-        * */
+        return createResponse("Reward request completed.", rewardDate, "COMPLETE" ,topWorks);
+    }
+
+    /**
+     * 상위 랭킹 작품의 작가들에게 리워드를 지급하는 메소드
+     *
+     * 상위 랭킹 작품(topWorks) 작가(author) 정보를 가져옴
+     * 특정 rewardRequestId에 해당하는 리워드 지급 요청 정보 조회
+     * `RewardHistory` 객체를 생성하여 지급 내역을 저장
+     * 상위 순위에 따라 지급되는 리워드 점수를 감소시키며 저장
+     *
+     * @param request  리워드 지급 요청 정보 (RewardRequest)
+     * @param topWorks 상위 랭킹에 포함된 작품 리스트 (WorkActivityDTO)
+     */
+    @Transactional
+    public void allocateAuthorRewards(RewardRequest request, List<WorkActivityDTO> topWorks){
         int score = 100;
         for (WorkActivityDTO workActivityDTO : topWorks) {
 
             // 1. 작품 정보 조회 (workId가 유효한지 확인)
             Work work = workRepository.findById(workActivityDTO.getWorkId())
-                    .orElseThrow(() -> new IllegalArgumentException("해당 작품이 존재하지 않습니다."));
+                    .orElseThrow(() -> new CustomException("Resource not found","해당 작품이 존재하지 않습니다."));
 
             // 2. 작가 정보 가져오기
             User author = work.getAuthor();
 
             // 3. 리워드 지급 요청 조회
             RewardRequest rewardRequest = rewardRequestRepository.findById(request.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("리워드 지급 요청을 찾을 수 없습니다."));
+                    .orElseThrow(() -> new CustomException("Resource not found","리워드 지급 요청을 찾을 수 없습니다."));
 
             // 4. `RewardHistory` 객체 생성 및 저장
             RewardHistory history = new RewardHistory(rewardRequest, author, work, score);
@@ -100,16 +123,30 @@ public class RewardService {
             rewardHistoryRepository.save(history);
 
         }
+    }
 
-        // ✅ 유저 ID별 점수를 저장할 Map (userId -> score)
+
+    /**
+     * 사용자 랭킹 리워드를 계산하는 메소드
+     *
+     * 상위 작품 리스트(topWorks) 각 작품의 정보를 조회
+     * 해당 작품(workId)과 연관된 사용자(기여자) 목록을 조회
+     * 조회된 사용자(userId)에 대해 보상 점수를 계산하여 userScoreList에 저장
+     * 동일 사용자(userId)가 이미 존재하는 경우, 점수를 누적하여 업데이트
+     * 최종적으로 각 사용자(userId)별 보상 점수를 포함한 리스트(userScoreList)를 반환
+     *
+     * @param topWorks 상위 랭킹에 포함된 작품 리스트 (WorkActivityDTO)
+     * @return 각 사용자(userId)별 보상 점수를 포함한 리스트
+     */
+    @Transactional
+    public  List<Map<String, Object>> distributeAuthorRankingRewards(List<WorkActivityDTO> topWorks,LocalDate rewardDate ) {
         List<Map<String, Object>> userScoreList = new ArrayList<>();
-
         for (WorkActivityDTO workActivityDTO : topWorks) {
             // 1. 작품 정보 조회 (workId가 유효한지 확인)
             Work work = workRepository.findById(workActivityDTO.getWorkId())
-                    .orElseThrow(() -> new IllegalArgumentException("해당 작품이 존재하지 않습니다."));
+                    .orElseThrow(() -> new CustomException("Resource not found","해당 작품이 존재하지 않습니다."));
 
-            List<Long> userIds = userActivityService.getQualifiedUsers(work.getId());
+            List<Long> userIds = userActivityService.getQualifiedUsers(work.getId(), rewardDate);
 
             for (Long userId : userIds) {
                 boolean found = false;
@@ -133,23 +170,42 @@ public class RewardService {
                 }
             }
         }
+        return userScoreList;
+    }
 
+    /**
+     * 소비자 랭킹 리워드를 지급하는 메소드
+     *
+     * userScoreList를 순회하며 각 소비자(userId)의 점수를 확인
+     * userId에 해당하는 소비자 정보를 조회
+     * reward_history 테이블에 보상 내역을 저장
+     *
+     * @param request       현재 지급할 리워드 요청 정보 (RewardRequest)
+     * @param userScoreList 소비자 ID(userId)와 해당 사용자의 점수(currentScore)가 포함된 리스트
+     */
+    @Transactional
+    public void distributeConsumerRankingRewards(RewardRequest request, List<Map<String, Object>> userScoreList) {
         for (Map<String, Object> entry : userScoreList) {
             Long userId = ((Number) entry.get("userId")).longValue();
             int userScore = ((Number) entry.get("currentScore")).intValue();
 
             User consumer = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException(userId + " : 해당 소비자가 존재하지 않습니다."));
+                    .orElseThrow(() -> new CustomException("Resource not found", "해당 소비자가 존재하지 않습니다."));
 
             RewardHistory history = new RewardHistory(request, consumer, null, userScore);
             rewardHistoryRepository.save(history);
         }
-
-        distributeRewards(request.getId());
-
-        return createResponse("Reward request completed.", rewardDate, "COMPLETE" ,topWorks);
     }
 
+    /**
+     * 특정 rewardRequestId에 해당하는 사용자들에게 리워드를 지급하는 메소드
+     *
+     * 특정 rewardRequestId에 해당하는 미지급 보상을 조회
+     * 조회된 사용자(userId)의 reward 값을 업데이트
+     * 해당 보상이 지급되었음을 기록하기 위해 reward_history의 total_paid 값을 true로 변경
+     *
+     * @param rewardRequestId 지급할 리워드 요청 ID
+     */
     @Transactional
     public void distributeRewards(Long rewardRequestId) {
         // 1. 특정 rewardRequestId에 해당하는 미지급 보상 조회
