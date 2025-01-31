@@ -121,17 +121,19 @@ CREATE TABLE reward_history (
                                 id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                 reward_request_id BIGINT NOT NULL,
                                 receiver_id BIGINT NOT NULL,
-                                receiver_type varchar2(20) NOT NULL,
-                                work_id BIGINT NOT NULL,
+                                work_id BIGINT ,
                                 points INT NOT NULL,
                                 created_at TIMESTAMP NOT NULL,
+                                total_paid BOOLEAN DEFAULT FALSE NOT NULL, -- 지급 여부 체크
                                 FOREIGN KEY (reward_request_id) REFERENCES reward_requests (id),
-                                FOREIGN KEY (receiver_id) REFERENCES users (id),
-                                FOREIGN KEY (work_id) REFERENCES works (id)
+                                FOREIGN KEY (receiver_id) REFERENCES users (id)
+
 );
 
+
+
 -- 초기 리워드 내역 데이터
-INSERT INTO reward_history (reward_request_id, receiver_id, receiver_type, work_id, points, created_at) VALUES
-                                                                                                (1, 1, 'AUTHOR', 1, 100, NOW()),
-                                                                                                (1, 2, 'USER', 1, 50, NOW()),
-                                                                                                (1, 3, 'USER', 2, 30, NOW());
+INSERT INTO reward_history (reward_request_id, receiver_id, work_id, points, created_at) VALUES
+                                                                                                (1, 1, 1, 100, NOW()),
+                                                                                                (1, 2, 3, 50, NOW()),
+                                                                                                (1, 3, 4, 30, NOW());

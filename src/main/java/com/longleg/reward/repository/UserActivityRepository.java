@@ -14,9 +14,6 @@ import java.util.List;
 public interface UserActivityRepository extends JpaRepository<UserActivity, Long> {
     boolean existsByUserAndWorkAndCreatedAtAfter(User user, Work work, LocalDateTime oneHourAgo);
 
-    @Transactional
-    void deleteByUserAndWorkAndActivityType(User user, Work work, ActivityType activityType);
-
     // ✅ 현재 유저가 "좋아요"를 유지하고 있는지 확인 (취소된 'UNLIKE'가 없고, 최신 'LIKE'가 있는 경우)
     @Query("SELECT COUNT(ua) > 0 FROM UserActivity ua " +
             "WHERE ua.user = :user AND ua.work = :work " +
@@ -36,14 +33,6 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, Long
                                 @Param("startDate") LocalDateTime startDate,
                                 @Param("endDate") LocalDateTime endDate);
 
-//    @Query("SELECT new com.longleg.reward.entity.WorkActivityDTO(" +
-//            "    ua.work.id, " +
-//            "    COALESCE(SUM(CASE WHEN ua.activityType = 'LIKE' THEN 1 ELSE 0 END), 0) " +
-//            "    - COALESCE(SUM(CASE WHEN ua.activityType = 'UNLIKE' THEN 1 ELSE 0 END), 0), " +
-//            "    COALESCE(SUM(CASE WHEN ua.activityType = 'VIEW' THEN 1 ELSE 0 END), 0)) " +
-//            "FROM UserActivity ua " +
-//            "GROUP BY ua.work.id")
-
     @Query(value = """
                SELECT 
                   ua.work_id AS workId,
@@ -56,5 +45,31 @@ public interface UserActivityRepository extends JpaRepository<UserActivity, Long
     List<WorkActivityProjection> getWorkActivityCounts();
 
 
+    @Query(value = """
+        SELECT DISTINCT user_id
+        FROM user_activity
+        WHERE work_id = :workId
+        AND (
+            activity_type = 'VIEW'
+            OR (
+                activity_type = 'LIKE'
+                AND user_id NOT IN (
+                    SELECT user_id
+                    FROM user_activity
+                    WHERE work_id = :workId
+                    AND activity_type = 'UNLIKE'
+                    GROUP BY user_id
+                    HAVING COUNT(*) >= (
+                        SELECT COUNT(*)\s
+                        FROM user_activity ua2
+                        WHERE ua2.work_id = :workId
+                        AND ua2.activity_type = 'LIKE'
+                        AND ua2.user_id = user_activity.user_id
+                    )
+                )
+            )
+        )
+        """, nativeQuery = true)
+    List<Long> findQualifiedUserIds(@Param("workId") Long workId);
 
 }

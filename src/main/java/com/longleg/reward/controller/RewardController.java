@@ -51,11 +51,24 @@ public class RewardController {
     public ResponseEntity<Map<String, Object>> getSortedWorks() {
         /*
         * 현재는 비즈니스 로직으로 처리하면서, 랭킹 계산에 대한 성능 문제가 발생하면 work_ranking 테이블을 추가하는 방향으로 확장
-        *
+        * 작가에게는 리워드가 한번만 지급되어야 한다
+        * A작가 작품이 1등 / 10등 이면 1등의 리워드 100, 10등의 리워드 10  이렇게 해서 합하여 110을 지급하기로함.
         * */
 
-        LocalDate rewardDate = LocalDate.parse("2025-01-29");
+        LocalDate rewardDate = LocalDate.parse("2025-01-29");  // ✅ 날짜를 요청에서 받음
         Map<String, Object> response = rewardService.calReward(rewardDate);
+
+        // ✅ JSON 응답 강제 설정
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
+    }
+
+    @GetMapping(value = "/execute", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> getRewardExecute() {
+
+        LocalDate rewardDate = LocalDate.parse("2025-01-29");
+        Map<String, Object> response = rewardService.rewardExecute(rewardDate);
 
         // ✅ JSON 응답 강제 설정
         return ResponseEntity.ok()
