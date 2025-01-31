@@ -1,6 +1,5 @@
 package com.longleg.reward.controller;
 
-import com.longleg.reward.exception.CustomException;
 import com.longleg.reward.service.WorkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -8,16 +7,16 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/works")
 @RequiredArgsConstructor
+@Tag(name = "작품 관리", description = "조회요청 좋아요 요청 API")
 public class WorkController {
 
     private final WorkService workService;

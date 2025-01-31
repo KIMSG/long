@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,12 +23,17 @@ public class RewardController {
 
     private final RewardService rewardService;
 
-    @Operation(summary = "랭킹 정렬 조회", description = """
-                            특정 날짜 기준으로 상위 10개의 작품 랭킹을 반환합니다.
-                            현재는 비즈니스 로직으로 처리하면서, 랭킹 계산에 대한 성능 문제가 발생하면 work_ranking 테이블을 추가하는 방향으로 확장
-                            작가에게는 리워드가 한번만 지급되어야 한다
-                            A작가 작품이 1등 / 10등 이면 1등의 리워드 100, 10등의 리워드 10  이렇게 해서 합하여 110을 지급하기로함.
-    """)
+    @Operation(
+            summary = "랭킹 정렬 조회",
+            description = """
+        특정 날짜 기준으로 상위 10개의 작품 랭킹을 반환합니다. 
+        
+        ### 🔹 추가 설명
+        - 현재는 비즈니스 로직으로 처리하며, 랭킹 계산의 성능 문제가 발생하면 `work_ranking` 테이블을 추가하는 방향으로 확장할 예정입니다.
+        - 작가에게는 리워드가 **한 번만 지급**되어야 합니다.
+        - A작가의 작품이 **1등(100점) / 10등(10점)** 이면, **총 110점의 리워드**를 지급합니다.
+        """
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Map.class))),
