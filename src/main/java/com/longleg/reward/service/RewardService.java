@@ -1,5 +1,6 @@
 package com.longleg.reward.service;
 
+import com.longleg.reward.dto.WorkActivityDTO;
 import com.longleg.reward.entity.*;
 import com.longleg.reward.exception.CustomException;
 import com.longleg.reward.repository.*;

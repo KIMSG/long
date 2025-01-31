@@ -1,4 +1,4 @@
-package com.longleg.reward.entity;
+package com.longleg.reward.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
