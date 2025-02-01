@@ -77,4 +77,5 @@ public class RewardController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
     }
+
 }
