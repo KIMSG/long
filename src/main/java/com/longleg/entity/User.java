@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Schema(description = "사용자/작가 정보를 나타내는 엔티티")
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users")
 public class User {

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Schema(description = "작품 정보를 나타내는 엔티티")
 @Entity
 @Getter
-//@Setter
+@Setter
 @ToString(exclude = "author") // 순환 참조 방지
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 기본 생성자 보호
 @EqualsAndHashCode(of = "id")
