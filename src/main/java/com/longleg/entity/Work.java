@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString(exclude = "author") // 순환 참조 방지
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 기본 생성자 보호
+//@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 기본 생성자 보호
+@NoArgsConstructor
 @EqualsAndHashCode(of = "id")
 @Table(name = "works")
 public class Work {

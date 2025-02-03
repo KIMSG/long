@@ -16,6 +16,9 @@ public class WorkActivityDTO {
     private int rank;
     private Long userId;
 
+    public WorkActivityDTO(long l) {
+    }
+
     // ✅ 점수 계산: (좋아요 * 2) + 조회수
     public int getScore() {
         return (likeCount * 2) + viewCount;

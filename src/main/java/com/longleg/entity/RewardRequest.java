@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "reward_requests")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RewardRequest {
 
@@ -30,6 +32,9 @@ public class RewardRequest {
         this.requestDate = requestDate;
         this.status = RewardStatus.REQUESTED;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public RewardRequest(long l) {
     }
 
     /** ✅ 리워드 지급을 시작할 때 호출 */

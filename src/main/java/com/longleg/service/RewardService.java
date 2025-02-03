@@ -229,7 +229,7 @@ public class RewardService {
     /**
      * 리워드 지급 요청이 유효한지 검증하는 메서드
      */
-    private void validateRewardRequest(LocalDate rewardDate) {
+    void validateRewardRequest(LocalDate rewardDate) {
         LocalDate today = LocalDate.now();
 
         if (!rewardDate.isBefore(today)) {
@@ -249,7 +249,8 @@ public class RewardService {
         response.put("message", message);
         response.put("requestDate", rewardDate.toString());
         response.put("status", status);
-        if (topWorks != null) {
+        // ✅ topWorks가 비어있을 경우 응답에 포함시키지 않음
+        if (topWorks != null && !topWorks.isEmpty()) {
             response.put("topWorks", topWorks);
         }
         return response;
