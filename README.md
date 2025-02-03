@@ -162,6 +162,20 @@ src
     - Docker 이미지를 사용해 컨테이너 실행.
     - 퍼블릭 URL 제공.
 
+### 3.3. 프로젝트 실행 방법 (Docker Hub 사용)
+
+- Docker Hub에서 이미지 다운로드
+    - 아래 명령어를 실행해서 이미지를 가져옵니다.
+
+```sh
+docker pull yuiox17/reward-app:1.0.0
+```
+
+- Docker 컨테이너 실행
+```sh
+docker run -p 8080:8080 mydockerhubusername/myapp
+```
+
 ---
 
 ## 4. 코드 정리
