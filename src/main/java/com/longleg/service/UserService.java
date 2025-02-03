@@ -34,9 +34,16 @@ public class UserService {
         Map<String, Object> response = new HashMap<>();
 
         // 사용자의 리워드 내역을 조회 (지급 요청일과 함께 조회)
-        List<RewardHistoryDTO> rewardHistories = rewardHistoryRepository.findByReceiverIdWithRequestDate(id)
-                .stream()
-                .map(obj -> new RewardHistoryDTO((RewardHistory) obj[0], (LocalDate) obj[1]))
+        List<Object[]> rawResults = rewardHistoryRepository.findByReceiverIdWithRequestDate(id);
+
+        List<RewardHistoryDTO> rewardHistories = rawResults.stream()
+                .map(obj -> {
+                    if (obj.length >= 2 && obj[0] instanceof RewardHistory && obj[1] instanceof LocalDate) {
+                        return new RewardHistoryDTO((RewardHistory) obj[0], (LocalDate) obj[1]);
+                    } else {
+                        throw new CustomException("Resource not found","해당 작품을 찾을 수 없습니다.");
+                    }
+                })
                 .toList();
 
         // 리워드 내역을 가공하여 최종 반환할 리스트

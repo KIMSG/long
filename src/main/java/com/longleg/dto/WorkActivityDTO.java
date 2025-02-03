@@ -16,7 +16,8 @@ public class WorkActivityDTO {
     private int rank;
     private Long userId;
 
-    public WorkActivityDTO(long l) {
+    public WorkActivityDTO(Long workId) {
+        this.workId = workId;
     }
 
     // ✅ 점수 계산: (좋아요 * 2) + 조회수

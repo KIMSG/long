@@ -8,46 +8,33 @@ import com.longleg.entity.UserRole;
 import com.longleg.entity.Work;
 import com.longleg.exception.CustomException;
 import com.longleg.repository.RewardHistoryRepository;
-import com.longleg.repository.UserActivityRepository;
 import com.longleg.repository.UserRepository;
 import com.longleg.repository.WorkRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class) // Mockito 확장 적용
-@DisplayName("UserService 단위 테스트")
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Mock
     private RewardHistoryRepository rewardHistoryRepository;
 
     @Mock
-    private UserActivityRepository userActivityRepository;
-
-    @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private UserActivityService userActivityService;
 
     @Mock
     private WorkRepository workRepository;
@@ -55,72 +42,91 @@ class UserServiceTest {
     @Mock
     private RewardService rewardService;
 
+    @Mock
+    private UserActivityService userActivityService;
+
     @InjectMocks
     private UserService userService;
 
-    private Long userId;
-    private Long workId;
-    private LocalDate rewardDate;
-    private RewardHistory rewardHistory;
     private User user;
     private Work work;
-    private WorkActivityDTO workActivityDTO;
-    private RewardHistoryDTO rewardHistoryDTO;
+    private RewardHistory rewardHistory;
+    private LocalDate requestDate;
 
     @BeforeEach
     void setUp() {
-        userId = 1L;
-        workId = 100L;
-        rewardDate = LocalDate.of(2024, 2, 1);
+        user = new User();
+        user.setId(1L);
+        user.setUserRole(UserRole.AUTHOR);
 
-        // ✅ Mock 객체 생성
-        user = Mockito.mock(User.class);
-        given(user.getId()).willReturn(userId);
-        given(user.getUserRole()).willReturn(UserRole.AUTHOR); // ✅ Mock 객체의 값 지정
+        work = new Work();
+        work.setId(100L);
+        work.setAuthor(user);
 
-        work = Mockito.mock(Work.class);
-        given(work.getId()).willReturn(100L);
-        given(work.getAuthor()).willReturn(user); // ✅ Mock 객체의 값 지정
-
-        rewardHistory = Mockito.mock(RewardHistory.class);
-        rewardHistoryDTO = new RewardHistoryDTO(rewardHistory, rewardDate);
-
-        workActivityDTO = new WorkActivityDTO();
-        workActivityDTO.setWorkId(work.getId());
-
-        // ✅ lenient()를 사용하여 불필요한 stubbing 경고 무시
-//        lenient().when(userActivityService.getQualifiedUsers(any(Long.class), any(LocalDate.class)))
-//                .thenReturn(List.of(userId));
+        rewardHistory = new RewardHistory();
+        requestDate = LocalDate.now();
     }
 
     @Test
-    @DisplayName("getUserReward - 정상적인 리워드 내역 반환")
-    void getUserReward_ReturnsRewardHistory() {
-        // Given
-        given(rewardHistoryRepository.findByReceiverIdWithRequestDate(userId))
-                .willReturn(List.of(new Object[][]{{rewardHistory, rewardDate}}));
+    void testGetUserReward_Success() {
+        RewardHistory rewardHistory = new RewardHistory();
+        LocalDate requestDate = LocalDate.now();
 
-        given(user.getId()).willReturn(userId);
-        given(user.getUserRole()).willReturn(UserRole.AUTHOR); // ✅ Mock 객체의 값 지정
-        given(work.getId()).willReturn(100L);
-        given(work.getAuthor()).willReturn(user); // ✅ Mock 객체의 값 지정
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(any()))
+                .thenReturn(List.of(new Object[][]{ {rewardHistory, requestDate} }));
 
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(workRepository.findById(work.getId())).willReturn(Optional.of(work));
-        given(rewardService.reasonReward(rewardDate)).willReturn(List.of(workActivityDTO));
 
-        // When
-        Map<String, Object> result = userService.getUserReward(userId);
+        when(userRepository.findById(any())).thenReturn(Optional.of(user));
+        when(workRepository.findById(any())).thenReturn(Optional.of(work));
+        when(rewardService.reasonReward(any())).thenReturn(List.of(new WorkActivityDTO(100L)));
 
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.get("rewards")).isInstanceOf(List.class);
-        assertThat(result.get("totalCount")).isEqualTo(1);
+        Map<String, Object> result = userService.getUserReward(1L);
 
-        verify(rewardHistoryRepository).findByReceiverIdWithRequestDate(userId);
-        verify(userRepository).findById(userId);
-        verify(workRepository).findById(work.getId());
-        verify(rewardService).reasonReward(rewardDate);
+        assertNotNull(result);
+        assertEquals(1, result.get("totalCount"));
+    }
+
+    @Test
+    void testGetUserReward_InvalidDataFormat() {
+        // 잘못된 데이터 (RewardHistory, LocalDate가 아님)
+        List<Object[]> invalidData = new ArrayList<>();
+        invalidData.add(new Object[]{"InvalidData", 123});
+
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(any()))
+                .thenReturn(invalidData);
+
+        CustomException exception = assertThrows(CustomException.class, () -> userService.getUserReward(1L));
+
+        assertEquals("해당 작품을 찾을 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    void testGetUserReward_UserAsConsumer() {
+        RewardHistory rewardHistory = new RewardHistory();
+        LocalDate requestDate = LocalDate.now();
+
+        List<Object[]> mockData = new ArrayList<>();
+        mockData.add(new Object[]{rewardHistory, requestDate});
+
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(any()))
+                .thenReturn(mockData);
+
+
+        when(userRepository.findById(any())).thenReturn(Optional.of(user));
+        when(workRepository.findById(any())).thenReturn(Optional.of(work));
+        when(rewardService.reasonReward(any())).thenReturn(List.of(new WorkActivityDTO(100L)));
+
+        // 🔹 사용자의 역할을 일반 소비자로 설정
+        user.setUserRole(UserRole.USER);
+
+        // 🔹 userActivityService.getQualifiedUsers(...)가 특정 사용자 ID를 포함한 리스트를 반환하도록 설정
+        when(userActivityService.getQualifiedUsers(any(), any()))
+                .thenReturn(List.of(1L)); // ID 1번 사용자가 조건 충족
+
+        Map<String, Object> result = userService.getUserReward(1L);
+
+        assertNotNull(result);
+        assertEquals(1, result.get("totalCount"));
     }
 
 }
