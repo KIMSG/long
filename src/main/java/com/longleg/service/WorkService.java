@@ -24,56 +24,31 @@ public class WorkService {
 
     @Transactional
     public int recordView(Long workId, Long userId) {
-        Work work = workRepository.findById(workId)
-                .orElseThrow(() -> new CustomException("Resource not found","해당 작품을 찾을 수 없습니다."));
+        Work work = getWorkById(workId);
+        User user = getUserById(userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException("Resource not found","해당 사용자를 찾을 수 없습니다."));
-
-        //조회하는 사람이 일반 유저일 때만~ 조회수 올리기
-        if (user.getUserRole().toString().equals("USER")) {
-
+        if (isRegularUser(user)) {
             LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
-
             boolean alreadyViewed = userActivityRepository.existsByUserAndWorkAndCreatedAtAfter(user, work, oneHourAgo);
 
             if (!alreadyViewed) {
-                userActivityRepository.save(UserActivity.builder()
-                        .user(user)
-                        .work(work)
-                        .activityType(ActivityType.VIEW) // ✅ 자동으로 VIEW 설정
-                        .build());
-
+                saveUserActivity(user, work, ActivityType.VIEW);
                 work.increaseViewCount();
             }
-
         }
         return work.getViewCount();
     }
 
     @Transactional
     public int recordLike(Long workId, Long userId) {
-        Work work = workRepository.findById(workId)
-                .orElseThrow(() -> new CustomException("Resource not found","해당 작품을 찾을 수 없습니다."));
+        Work work = getWorkById(workId);
+        User user = getUserById(userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException("Resource not found","해당 사용자를 찾을 수 없습니다."));
-
-        //조회하는 사람이 일반 유저일 때만~ 조회수 올리기
-        if (user.getUserRole().toString().equals("USER")) {
-
-            // ✅ 중복 좋아요 방지 로직 (CustomException 사용)
-            boolean alreadyLiked = userActivityRepository.isCurrentlyLiked(user, work);
-            if (alreadyLiked) {
-                throw new CustomException("Resource already exists", "이미 좋아요를 한 작품 입니다.");
+        if (isRegularUser(user)) {
+            if (userActivityRepository.isCurrentlyLiked(user, work)) {
+                throw new CustomException("Resource already exists", "이미 좋아요를 한 작품입니다.");
             }
-            // ✅ 좋아요 추가
-            userActivityRepository.save(UserActivity.builder()
-                    .user(user)
-                    .work(work)
-                    .activityType(ActivityType.LIKE) // ✅ 좋아요 수 증가
-                    .build());
-
+            saveUserActivity(user, work, ActivityType.LIKE);
             work.increaseLikeCount();
         }
         return work.getLikeCount();
@@ -81,30 +56,41 @@ public class WorkService {
 
     @Transactional
     public void recordUnlike(Long workId, Long userId) {
-        Work work = workRepository.findById(workId)
-                .orElseThrow(() -> new CustomException("Resource not found", "해당 작품을 찾을 수 없습니다."));
+        Work work = getWorkById(workId);
+        User user = getUserById(userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException("Resource not found", "해당 사용자를 찾을 수 없습니다."));
-
-        //우선은 방어코드를 넣어보았다.
-        //조회하는 사람이 일반 유저일 때만~ 조회수 올리기
-        if (user.getUserRole().toString().equals("USER")) {
-            // ✅ 좋아요 여부 확인
-            boolean liked = userActivityRepository.isCurrentlyLiked(user, work);
-            if (!liked) {
+        if (isRegularUser(user)) {
+            if (!userActivityRepository.isCurrentlyLiked(user, work)) {
                 throw new CustomException("Resource not found", "해당 작품을 좋아요하지 않아서 좋아요 취소를 할 수 없습니다.");
             }
-
-            // ✅ 새로운 "좋아요 취소" 기록 추가
-            userActivityRepository.save(UserActivity.builder()
-                    .user(user)
-                    .work(work)
-                    .activityType(ActivityType.UNLIKE)  // ✅ "UNLIKE" 추가
-                    .build());
-
-            work.decreaseLikeCount();  // ✅ 좋아요 수 감소
+            saveUserActivity(user, work, ActivityType.UNLIKE);
+            work.decreaseLikeCount();
         }
+    }
+
+
+
+    // 🔹 공통 메서드 추가 🔹
+    private Work getWorkById(Long workId) {
+        return workRepository.findById(workId)
+                .orElseThrow(() -> new CustomException("Resource not found", "해당 작품을 찾을 수 없습니다."));
+    }
+
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException("Resource not found", "해당 사용자를 찾을 수 없습니다."));
+    }
+
+    private boolean isRegularUser(User user) {
+        return "USER".equals(user.getUserRole().toString());
+    }
+
+    private void saveUserActivity(User user, Work work, ActivityType activityType) {
+        userActivityRepository.save(UserActivity.builder()
+                .user(user)
+                .work(work)
+                .activityType(activityType)
+                .build());
     }
 }
 

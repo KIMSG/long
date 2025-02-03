@@ -1,9 +1,6 @@
 package com.longleg.service;
 
-import com.longleg.entity.ActivityType;
-import com.longleg.entity.User;
-import com.longleg.entity.UserActivity;
-import com.longleg.entity.Work;
+import com.longleg.entity.*;
 import com.longleg.exception.CustomException;
 import com.longleg.repository.UserActivityRepository;
 import com.longleg.repository.UserRepository;
@@ -21,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -53,17 +51,6 @@ class WorkServiceTest {
         userId = 1L;
         user = Mockito.mock(User.class);
         work = Mockito.mock(Work.class);
-
-        given(user.getUserRole()).willReturn(com.longleg.entity.UserRole.USER);
-
-//        user = Mockito.mock(User.class);
-//        given(user.getId()).willReturn(userId);
-//        given(user.getUserRole()).willReturn(com.longleg.entity.UserRole.USER);
-//
-//        work = Mockito.mock(Work.class);
-//        given(work.getId()).willReturn(workId);
-//        given(work.getViewCount()).willReturn(10);
-//        given(work.getLikeCount()).willReturn(5);
     }
 
     @Test
@@ -140,33 +127,13 @@ class WorkServiceTest {
     }
 
     @Test
-    @DisplayName("recordLike - 이미 좋아요한 경우 예외 발생")
-    void recordLike_AlreadyLiked() {
-        // Given
-        given(workRepository.findById(workId)).willReturn(Optional.of(work));
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
-
-        // ✅ user.getUserRole() 명시적으로 설정 (Null 방지)
-        given(user.getUserRole()).willReturn(com.longleg.entity.UserRole.USER);
-
-        given(userActivityRepository.isCurrentlyLiked(user, work)).willReturn(true); // ✅ 이미 좋아요한 상태
-
-        // When & Then
-        CustomException exception = assertThrows(CustomException.class, () -> workService.recordLike(workId, userId));
-        assertThat(exception.getMessage()).isEqualTo("이미 좋아요를 한 작품 입니다.");
-
-        verify(userActivityRepository, never()).save(any(UserActivity.class));
-        verify(work, never()).increaseLikeCount();
-    }
-
-    @Test
     @DisplayName("recordUnlike - 좋아요를 취소하는 경우 정상 처리")
     void recordUnlike_Success() {
         // Given
         given(workRepository.findById(workId)).willReturn(Optional.of(work));
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userActivityRepository.isCurrentlyLiked(user, work)).willReturn(true); // ✅ 좋아요한 상태
-
+        given(user.getUserRole()).willReturn(com.longleg.entity.UserRole.USER);
         // When
         workService.recordUnlike(workId, userId);
 
@@ -183,12 +150,162 @@ class WorkServiceTest {
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userActivityRepository.isCurrentlyLiked(user, work)).willReturn(false); // ✅ 좋아요하지 않은 상태
 
+        given(user.getUserRole()).willReturn(com.longleg.entity.UserRole.USER);
         // When & Then
         CustomException exception = assertThrows(CustomException.class, () -> workService.recordUnlike(workId, userId));
         assertThat(exception.getMessage()).isEqualTo("해당 작품을 좋아요하지 않아서 좋아요 취소를 할 수 없습니다.");
 
         verify(userActivityRepository, never()).save(any(UserActivity.class));
         verify(work, never()).decreaseLikeCount();
+    }
+
+
+    @Test
+    void recordView_WhenWorkNotFound_ShouldThrowException() {
+        // given
+        Long workId = 999L; // 존재하지 않는 ID
+        Long userId = 1L;
+
+        when(workRepository.findById(workId)).thenReturn(Optional.empty());
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            workService.recordView(workId, userId);
+        });
+
+        assertEquals("Resource not found", exception.getError());
+        assertEquals("해당 작품을 찾을 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    void recordView_WhenUserNotFound_ShouldThrowException() {
+        // given
+        Long workId = 1L;
+        Long userId = 999L; // 존재하지 않는 사용자 ID
+
+        Work work = mock(Work.class);
+        when(workRepository.findById(workId)).thenReturn(Optional.of(work));
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            workService.recordView(workId, userId);
+        });
+
+        assertEquals("Resource not found", exception.getError());
+        assertEquals("해당 사용자를 찾을 수 없습니다.", exception.getMessage());
+    }
+
+
+    @Test
+    void recordLike_WhenUserAlreadyLiked_ShouldThrowException() {
+        // given
+        Long workId = 1L;
+        Long userId = 1L;
+
+        Work work = mock(Work.class);
+        User user = mock(User.class);
+
+        when(workRepository.findById(workId)).thenReturn(Optional.of(work));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(user.getUserRole()).thenReturn(UserRole.USER); // ✅ 일반 사용자로 설정
+
+        when(userActivityRepository.isCurrentlyLiked(user, work)).thenReturn(true); // ✅ 이미 좋아요한 상태
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            workService.recordLike(workId, userId);
+        });
+
+        assertEquals("Resource already exists", exception.getError());
+        assertEquals("이미 좋아요를 한 작품입니다.", exception.getMessage());
+
+        verify(work, never()).increaseLikeCount(); // ✅ 좋아요 수 증가하지 않아야 함
+    }
+
+    @Test
+    void recordUnlike_WhenUserIsRegularUser_ShouldDecreaseLikeCount() {
+        // given
+        Long workId = 1L;
+        Long userId = 1L;
+
+        Work work = mock(Work.class);
+        User user = mock(User.class);
+
+        when(workRepository.findById(workId)).thenReturn(Optional.of(work));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(user.getUserRole()).thenReturn(UserRole.USER); // ✅ 일반 사용자 설정
+
+        when(userActivityRepository.isCurrentlyLiked(user, work)).thenReturn(true); // ✅ 좋아요한 상태
+
+        // when
+        workService.recordUnlike(workId, userId);
+
+        // then
+        verify(userActivityRepository, times(1)).save(any()); // ✅ "UNLIKE" 기록 저장 확인
+        verify(work, times(1)).decreaseLikeCount(); // ✅ 좋아요 수 감소 확인
+    }
+
+    @Test
+    void recordUnlike_WhenUserIsAdmin_ShouldNotDecreaseLikeCount() {
+        // given
+        Long workId = 1L;
+        Long userId = 2L;
+
+        Work work = mock(Work.class);
+        User user = mock(User.class);
+
+        when(workRepository.findById(workId)).thenReturn(Optional.of(work));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(user.getUserRole()).thenReturn(UserRole.AUTHOR); // ✅ 관리자 설정
+
+        // when
+        workService.recordUnlike(workId, userId);
+
+        // then
+        verify(userActivityRepository, never()).save(any()); // ✅ 좋아요 취소 기록이 저장되지 않아야 함
+        verify(work, never()).decreaseLikeCount(); // ✅ 좋아요 수 감소되지 않아야 함
+    }
+    @Test
+    void recordLike_WhenUserIsAdmin_ShouldNotIncreaseLikeCount() {
+        // given
+        Long workId = 1L;
+        Long userId = 2L;
+
+        Work work = mock(Work.class);
+        User user = mock(User.class);
+
+        when(workRepository.findById(workId)).thenReturn(Optional.of(work));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(user.getUserRole()).thenReturn(UserRole.AUTHOR); // ✅ 관리자 설정
+
+        // when
+        int likeCount = workService.recordLike(workId, userId);
+
+        // then
+        verify(userActivityRepository, never()).save(any()); // ✅ 좋아요 기록이 저장되지 않아야 함
+        verify(work, never()).increaseLikeCount(); // ✅ 좋아요 수 증가하지 않아야 함
+    }
+
+    @Test
+    void recordLike_WhenUserIsAdmin_ShouldNotIncreaseViewCount() {
+        // given
+        Long workId = 1L;
+        Long userId = 2L;
+
+        Work work = mock(Work.class);
+        User user = mock(User.class);
+
+        when(workRepository.findById(workId)).thenReturn(Optional.of(work));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(user.getUserRole()).thenReturn(UserRole.AUTHOR); // ✅ 관리자 설정
+
+        // when
+        int likeCount = workService.recordLike(workId, userId);
+
+        // then
+        verify(userActivityRepository, never()).save(any()); // ✅ 좋아요 기록이 저장되지 않아야 함
+        verify(work, never()).increaseLikeCount(); // ✅ 좋아요 수 증가하지 않아야 함
     }
 
 
