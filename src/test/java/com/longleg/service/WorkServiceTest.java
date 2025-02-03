@@ -308,5 +308,34 @@ class WorkServiceTest {
         verify(work, never()).increaseLikeCount(); // ✅ 좋아요 수 증가하지 않아야 함
     }
 
+    @Test
+    void recordView_shouldIncreaseViewCountForRegularUser() {
+        // given: USER 유저의 경우
+        when(user.getUserRole()).thenReturn(UserRole.USER);
+        when(workRepository.findById(any())).thenReturn(Optional.of(work));
+        when(userRepository.findById(any())).thenReturn(Optional.of(user));
+        when(userActivityRepository.existsByUserAndWorkAndCreatedAtAfter(any(), any(), any()))
+                .thenReturn(false); // 아직 조회 기록 없음
+
+        // when
+        workService.recordView(workId, userId);
+
+        // then
+        verify(work, times(1)).increaseViewCount(); // 조회수 증가 확인
+    }
+
+    @Test
+    void recordView_shouldNotIncreaseViewCountForNonRegularUser() {
+        // given: REGULAR 유저가 아닌 경우
+        when(user.getUserRole()).thenReturn(UserRole.AUTHOR);
+        when(workRepository.findById(any())).thenReturn(Optional.of(work));
+        when(userRepository.findById(any())).thenReturn(Optional.of(user));
+
+        // when
+        workService.recordView(workId, userId);
+
+        // then
+        verify(work, never()).increaseViewCount(); // 조회수 증가하면 안 됨
+    }
 
 }

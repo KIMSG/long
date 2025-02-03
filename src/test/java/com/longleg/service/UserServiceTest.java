@@ -25,7 +25,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -52,6 +53,7 @@ class UserServiceTest {
     private Work work;
     private RewardHistory rewardHistory;
     private LocalDate requestDate;
+    private final Long userId = 1L;
 
     @BeforeEach
     void setUp() {
@@ -128,5 +130,70 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals(1, result.get("totalCount"));
     }
+
+    @Test
+    void getUserReward_shouldProcessValidRewardHistory() {
+        // given: 정상적인 RewardHistory + LocalDate
+        RewardHistory mockRewardHistory = mock(RewardHistory.class);
+        List<Object[]> rawResults = new ArrayList<>();
+        rawResults.add(new Object[]{ mockRewardHistory, LocalDate.now() });
+
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(userId)).thenReturn(rawResults);
+
+        // when & then
+        Map<String, Object> result = userService.getUserReward(userId);
+        assertNotNull(result.get("rewards")); // 정상적으로 반환되는지 확인
+    }
+
+    @Test
+    void getUserReward_shouldThrowExceptionForInvalidRewardHistoryObject() {
+        // given: obj[0]이 RewardHistory가 아닌 경우
+        List<Object[]> rawResults = new ArrayList<>();
+        rawResults.add(new Object[]{ "InvalidObject", LocalDate.now() });
+
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(userId)).thenReturn(rawResults);
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            userService.getUserReward(userId);
+        });
+
+        assertEquals("해당 작품을 찾을 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    void getUserReward_shouldThrowExceptionForInvalidLocalDateObject() {
+        // given: obj[1]이 LocalDate가 아닌 경우
+        RewardHistory mockRewardHistory = mock(RewardHistory.class);
+        List<Object[]> rawResults = new ArrayList<>();
+        rawResults.add(new Object[]{ mockRewardHistory, "InvalidDate" });
+
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(userId)).thenReturn(rawResults);
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            userService.getUserReward(userId);
+        });
+
+        assertEquals("해당 작품을 찾을 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    void getUserReward_shouldThrowExceptionForShortObjectArray() {
+        // given: obj.length < 2 인 경우
+        RewardHistory mockRewardHistory = mock(RewardHistory.class);
+        List<Object[]> rawResults = new ArrayList<>();
+        rawResults.add(new Object[]{ mockRewardHistory }); // 길이가 1개만 있음
+
+        when(rewardHistoryRepository.findByReceiverIdWithRequestDate(userId)).thenReturn(rawResults);
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            userService.getUserReward(userId);
+        });
+
+        assertEquals("해당 작품을 찾을 수 없습니다.", exception.getMessage());
+    }
+
 
 }

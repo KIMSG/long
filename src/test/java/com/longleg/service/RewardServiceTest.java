@@ -1,5 +1,6 @@
 package com.longleg.service;
 
+import com.longleg.dto.RewardHistoryDTO;
 import com.longleg.dto.WorkActivityDTO;
 import com.longleg.entity.*;
 import com.longleg.exception.CustomException;
@@ -14,6 +15,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -46,6 +48,9 @@ class RewardServiceTest {
 
     @Mock
     private UserActivityService userActivityService;
+
+    @Mock
+    private UserService userService;
 
     private Work work;
     private WorkActivityDTO workActivityDTO;
@@ -360,6 +365,74 @@ class RewardServiceTest {
         verify(rewardService, times(1)).distributeConsumerRankingRewards(any(RewardRequest.class), anyList());
         verify(rewardService, times(1)).distributeRewards(nullable(Long.class));
     }
+
+    @Test
+    void validateRewardRequest_shouldThrowExceptionForFutureDate() {
+        // given: 미래 날짜를 설정
+        LocalDate futureDate = LocalDate.now().plusDays(1);
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            rewardService.validateRewardRequest(futureDate);
+        });
+
+        assertEquals("Reward can't be requested", exception.getError());
+        assertEquals("요청 당일과 미래 날짜는 선택할 수 없습니다.", exception.getMessage());
+    }
+
+    @Test
+    void validateRewardRequest_shouldThrowExceptionForDuplicateRequest() {
+        // given: 이미 존재하는 리워드 요청 날짜
+        LocalDate rewardDate = LocalDate.now().minusDays(1);
+        when(rewardRequestRepository.findByRequestDate(rewardDate)).thenReturn(Optional.of(new RewardRequest(rewardDate)));
+
+        // when & then
+        CustomException exception = assertThrows(CustomException.class, () -> {
+            rewardService.validateRewardRequest(rewardDate);
+        });
+
+        assertEquals("Reward already requested", exception.getError());
+        assertEquals(rewardDate + " 일은 이미 리워드 지급 요청이 있습니다.", exception.getMessage());
+    }
+
+    @Test
+    void validateRewardRequest_shouldPassForValidDate() {
+        // given: 유효한 과거 날짜
+        LocalDate validDate = LocalDate.now().minusDays(1);
+        when(rewardRequestRepository.findByRequestDate(validDate)).thenReturn(Optional.empty());
+
+        // when & then (예외가 발생하지 않아야 함)
+        assertDoesNotThrow(() -> rewardService.validateRewardRequest(validDate));
+    }
+
+
+    @Test
+    void createResponse_shouldTestAllConditions() throws Exception {
+        // given
+        String message = "Success";
+        LocalDate rewardDate = LocalDate.now();
+        String status = "COMPLETE";
+
+        // 🔥 리플렉션으로 `private` 메서드 접근
+        Method createResponseMethod = RewardService.class.getDeclaredMethod(
+                "createResponse", String.class, LocalDate.class, String.class, List.class);
+        createResponseMethod.setAccessible(true); // 🔥 private 메서드 접근 가능하도록 변경
+
+        // when & then (topWorks가 null인 경우)
+        Map<String, Object> response1 = (Map<String, Object>) createResponseMethod.invoke(rewardService, message, rewardDate, status, null);
+        assertFalse(response1.containsKey("topWorks"));
+
+        // when & then (topWorks가 빈 리스트인 경우)
+        Map<String, Object> response2 = (Map<String, Object>) createResponseMethod.invoke(rewardService, message, rewardDate, status, List.of());
+        assertFalse(response2.containsKey("topWorks"));
+
+        // when & then (topWorks에 데이터가 있는 경우)
+        List<WorkActivityDTO> topWorks = List.of(new WorkActivityDTO(1L, 10, 20, 5L));
+        Map<String, Object> response3 = (Map<String, Object>) createResponseMethod.invoke(rewardService, message, rewardDate, status, topWorks);
+        assertTrue(response3.containsKey("topWorks"));
+        assertEquals(1, ((List<?>) response3.get("topWorks")).size());
+    }
+
 
 
 }
