@@ -151,6 +151,8 @@ src
 
 ## 3. 배포
 ### 3.1. Docker Hub 배포
+- [ ] 프로젝트 빌드
+  - `./gradlew bootJar`
 - [ ] Docker Hub에 이미지 푸시:
     - `docker tag reward-app yuiox17/reward-app:1.0.0`
     - `docker push yuiox17/reward-app:1.0.0`
