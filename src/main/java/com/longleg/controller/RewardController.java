@@ -66,7 +66,7 @@ public class RewardController {
             @ApiResponse(responseCode = "409", description = "해당 날짜에 이미 요청된 리워드 존재"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    @GetMapping(value = "/execute", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/execute", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> getRewardExecute(@RequestParam("date") String date) {
 
         LocalDate rewardDate = LocalDate.parse(date);
